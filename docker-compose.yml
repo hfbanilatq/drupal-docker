@@ -1,0 +1,49 @@
+version: "3"
+
+services:
+
+  drupal:
+    image: drupal:8.9.5-fpm-alpine
+    container_name: drupal
+    restart: unless-stopped
+    networks:
+      - internal
+      - external
+    volumes:
+      - drupal-data:/var/www/html
+
+  webserver:
+    image: nginx:1.18.0
+    container_name: webserver
+    depends_on:
+      - drupal
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - drupal-data:/var/www/html
+      - ./nginx-conf:/etc/nginx/conf.d
+      - certbot-etc:/etc/letsencrypt
+    networks:
+      - external
+
+  certbot:
+    depends_on:
+      - webserver
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - drupal-data:/var/www/html
+    command: certonly --webroot --webroot-path=/var/www/html --email hfbanilatq@gmail.com --agree-tos --no-eff-email --force-renewal -d bcdrupal.ml -d www.bcdrupal.ml
+
+networks:
+  external:
+    driver: bridge
+  internal:
+    driver: bridge
+
+volumes:
+  drupal-data:
+  certbot-etc:
